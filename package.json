@@ -27,6 +27,10 @@
     "ai"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Fzhiyu1/design-ruler.git"
+  },
   "packageManager": "pnpm@10.28.2",
   "dependencies": {
     "commander": "^14.0.3",
