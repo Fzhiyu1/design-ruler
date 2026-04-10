@@ -4,7 +4,7 @@ A ruler for AI agents — measure runtime rendering, capture screenshots, and ve
 
 Most design-to-code tools try to be smart: they diff pixels, score similarity, generate reports. design-ruler takes the opposite approach — **it just collects data and gets out of the way**. The AI agent reads the measurements, compares them against whatever design spec it already has, fixes the CSS, and re-measures to verify. No human in the loop.
 
-This is the open-source CLI distilled from an internal MCP-based design verification pipeline used in production for car infotainment UI development (Vue 3 + WebView + Figma).
+This is the open-source CLI distilled from an internal MCP-based design verification pipeline used in production.
 
 ## Why
 
@@ -25,14 +25,24 @@ No SSIM scores, no pixel heatmaps, no HTML reports. The agent IS the diff engine
 
 ## Install
 
+Requires Node.js >= 18.
+
 ```bash
-npm install -g design-ruler
+# From source
+git clone https://github.com/Fzhiyu1/design-ruler.git
+cd design-ruler
+pnpm install
+pnpm build
+npm link
+
+# Install Playwright browser (first time only)
+npx playwright install chromium
 ```
 
-Or use directly:
+Verify:
 
 ```bash
-npx design-ruler measure --url "http://localhost:3000" --selector ".dialog"
+design-ruler --version
 ```
 
 ## Commands
@@ -111,7 +121,15 @@ design-ruler overlay --design spec.png --url "http://localhost:3000" --offset-x 
 design-ruler overlay --design ./design.png --url "http://localhost:3000"
 ```
 
-Design elements appear in magenta, implementation in original colors. Where they align, the image looks clean. Where they diverge, you see magenta ghosting. AI agents read ghost images to identify misaligned regions.
+Design elements appear in **magenta**, implementation in original colors. Where they align, the image looks clean. Where they diverge, you see magenta ghosting:
+
+| Design | Ghost overlay |
+|--------|--------------|
+| ![design](docs/design-example.png) | ![ghost](docs/ghost-example.png) |
+
+The ghost effect amplifies even 1-2px offsets. AI agents read ghost images to directly identify which elements are misaligned and by how much.
+
+**How tinting works:** The design image is preprocessed with Sharp — white/light pixels become transparent, dark/colored pixels are tinted magenta with opacity proportional to darkness. This means no background color pollution, and the AI can always distinguish the design ghost (magenta) from the actual implementation (original colors).
 
 ## Engines
 
@@ -162,12 +180,13 @@ The three commands work together in a verification loop. `measure` is the source
 
 **Why measure leads:** Ghost overlay and screenshots rely on multimodal vision, which has precision limits — an AI might miss a 2px offset or misjudge a color. `measure` returns exact computed values (`border-radius: 12px`, `padding: 24px`) that can be compared programmatically with zero ambiguity.
 
-**Why visual still matters:** `measure` can't see everything. Shadows, gradients, visual weight, icon alignment, overall "feel" — these require eyes. The agent uses `screenshot` to spot-check overall fidelity, and `overlay` ghost images to quickly locate spatial misalignments (the ghost effect amplifies even 1-2px offsets). Then `measure` confirms and quantifies.
+**Why visual still matters:** `measure` can't see everything. Shadows, gradients, visual weight, icon alignment, overall "feel" — these require eyes. The agent uses `screenshot` to spot-check overall fidelity, and `overlay` ghost images to quickly locate spatial misalignments. Then `measure` confirms and quantifies.
 
 ## Programmatic API
 
 ```typescript
-import { createEngine, PlaywrightEngine, CdpEngine } from 'design-ruler'
+import { createEngine, PlaywrightEngine } from 'design-ruler'
+import { writeFile } from 'fs/promises'
 
 // Auto-select engine
 const engine = await createEngine({ url: 'http://localhost:3000' })
@@ -180,19 +199,21 @@ const engine = await PlaywrightEngine.create('http://localhost:3000', {
 const result = await engine.measure('.dialog', 2)
 console.log(result.bbox, result.computedStyle)
 
-const screenshot = await engine.screenshot({ selector: '.dialog' })
-await writeFile('dialog.png', screenshot)
+const buf = await engine.screenshot({ selector: '.dialog' })
+await writeFile('dialog.png', buf)
 
 await engine.close()
 ```
 
 ## Background
 
-This tool was extracted from an internal design verification pipeline used for a car infotainment KTV system (Vue 3 + Android WebView). The full pipeline includes Figma MCP integration, dual-side layout snapshots, SSIM scoring, and HTML report generation.
+This tool was extracted from an internal design verification pipeline (Vue 3 + Android WebView + Figma MCP). The full pipeline includes dual-side layout snapshots, SSIM scoring, and HTML report generation.
 
-In practice, we found that **AI agents don't need most of that machinery**. Give them structured measurements and they'll figure out the rest. The heavy verification tools (SSIM, reports, CSS diff with tolerance) actually interrupt the agent's autonomous flow. The best workflow is: human selects a design module, agent does everything else.
+In practice, we found that **AI agents don't need most of that machinery**. Give them structured measurements and they'll figure out the rest. The heavy verification tools (SSIM, reports, CSS diff with tolerance) actually interrupt the agent's autonomous flow — the AI has to stop, parse a report, then decide what to do. With design-ruler, the AI just reads JSON and acts.
 
-design-ruler is the open-source distillation of that lesson: tools should collect data, not make decisions.
+The best workflow turned out to be: human selects a design module, agent does everything else.
+
+design-ruler is the open-source distillation of that lesson: **tools should collect data, not make decisions.**
 
 ## License
 
