@@ -1,0 +1,52 @@
+{
+  "name": "design-ruler",
+  "version": "0.1.0",
+  "description": "A ruler for AI — measure runtime rendering against design specs",
+  "type": "module",
+  "bin": {
+    "design-ruler": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "design",
+    "verification",
+    "css",
+    "figma",
+    "overlay",
+    "ai"
+  ],
+  "license": "MIT",
+  "packageManager": "pnpm@10.28.2",
+  "dependencies": {
+    "commander": "^14.0.3",
+    "sharp": "^0.34.5",
+    "ws": "^8.20.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.2",
+    "@types/ws": "^8.18.1",
+    "tsup": "^8.5.1",
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.4"
+  },
+  "optionalDependencies": {
+    "playwright": "^1.59.1"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp"
+    ]
+  }
+}
