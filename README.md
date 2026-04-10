@@ -1,5 +1,7 @@
 # design-ruler
 
+[中文](README.cn.md) | English
+
 A ruler for AI agents — measure runtime rendering, capture screenshots, and verify CSS against design specs.
 
 Most design-to-code tools try to be smart: they diff pixels, score similarity, generate reports. design-ruler takes the opposite approach — **it just collects data and gets out of the way**. The AI agent reads the measurements, compares them against whatever design spec it already has, fixes the CSS, and re-measures to verify. No human in the loop.
