@@ -7,7 +7,7 @@ export default defineConfig([
     clean: true,
     sourcemap: true,
     tsconfig: 'tsconfig.json',
-    external: ['playwright', 'sharp'],
+    external: ['playwright', 'sharp', 'ai', '@ai-sdk/openai'],
     banner: { js: '#!/usr/bin/env node\n' },
   },
   {
@@ -16,6 +16,6 @@ export default defineConfig([
     dts: true,
     sourcemap: true,
     tsconfig: 'tsconfig.json',
-    external: ['playwright', 'sharp'],
+    external: ['playwright', 'sharp', 'ai', '@ai-sdk/openai'],
   },
 ])

@@ -16,7 +16,8 @@
     "lint": "tsc --noEmit"
   },
   "files": [
-    "dist"
+    "dist",
+    "skills"
   ],
   "keywords": [
     "design",
@@ -33,6 +34,8 @@
   },
   "packageManager": "pnpm@10.28.2",
   "dependencies": {
+    "@ai-sdk/openai": "^3.0.65",
+    "ai": "^6.0.191",
     "commander": "^14.0.3",
     "sharp": "^0.34.5",
     "ws": "^8.20.0"

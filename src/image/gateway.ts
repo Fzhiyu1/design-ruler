@@ -62,6 +62,13 @@ export interface EditOptions {
 }
 export interface EditResult { out: string; bytes: number; model: string; mode: 'edit' }
 
+// Image-only models (gpt-image-2) are NOT language models, so they cannot be
+// edited through /chat/completions. On this gateway they reach gpt-image-2's
+// editing via a GPT-5 multimodal model + the image_generation tool. Route those
+// models to the tool path; everything else (gemini, default) uses the chat path.
+export const DEFAULT_TOOL_LLM = 'openai/gpt-5.1-instant'
+const TOOL_EDIT_MODELS = new Set(['openai/gpt-image-2', 'openai/gpt-image-1'])
+
 async function toDataUrl(path: string): Promise<string> {
   const buf = await readFile(path)
   return `data:image/png;base64,${buf.toString('base64')}`
@@ -71,11 +78,33 @@ type ContentPart =
   | { type: 'image_url'; image_url: { url: string } }
   | { type: 'text'; text: string }
 
+/** Resize a base64 image into a target canvas (contain + black background). */
+async function fitCanvas(b64: string, [tw, th]: [number, number]): Promise<string> {
+  const sharp = (await import('sharp')).default
+  const buf = await sharp(Buffer.from(b64, 'base64'))
+    .resize(tw, th, { fit: 'contain', background: { r: 0, g: 0, b: 0 } })
+    .png()
+    .toBuffer()
+  return buf.toString('base64')
+}
+
+/**
+ * Image-to-image edit. Routes by model:
+ *  - chat-capable image models (gemini-2.5-flash-image, the default) → /chat/completions.
+ *    Faithful & fast — good for cleanup/tweaks, weaker for full redesigns.
+ *  - image-only models (openai/gpt-image-2) → GPT-5 + image_generation tool.
+ *    image2-quality, can truly redesign; slower & costlier.
+ */
 export async function edit(opts: EditOptions): Promise<EditResult> {
   for (const p of [opts.ref, ...(opts.extra ?? [])]) {
     if (!existsSync(p)) throw new Error(`reference image not found: ${p}`)
   }
   const model = opts.model ?? DEFAULT_EDIT_MODEL
+  return TOOL_EDIT_MODELS.has(model) ? editViaTool(opts, model) : editViaChat(opts, model)
+}
+
+/** Faithful edit via a multimodal chat image model (e.g. gemini-2.5-flash-image). */
+async function editViaChat(opts: EditOptions, model: string): Promise<EditResult> {
   const content: ContentPart[] = [{ type: 'image_url', image_url: { url: await toDataUrl(opts.ref) } }]
   for (const p of opts.extra ?? []) {
     content.push({ type: 'image_url', image_url: { url: await toDataUrl(p) } })
@@ -96,15 +125,41 @@ export async function edit(opts: EditOptions): Promise<EditResult> {
   let b64: string = String(images[0].image_url.url).split(',')[1]
   if (!b64) throw new Error('image2 edit: unexpected image_url format (expected data URL)')
 
-  if (opts.targetSize) {
-    const sharp = (await import('sharp')).default
-    const [tw, th] = opts.targetSize
-    const buf = await sharp(Buffer.from(b64, 'base64'))
-      .resize(tw, th, { fit: 'contain', background: { r: 0, g: 0, b: 0 } })
-      .png()
-      .toBuffer()
-    b64 = buf.toString('base64')
-  }
+  if (opts.targetSize) b64 = await fitCanvas(b64, opts.targetSize)
   const bytes = await saveB64(b64, opts.out)
   return { out: opts.out, bytes, model, mode: 'edit' }
+}
+
+/**
+ * High-fidelity image-to-image via a GPT-5 multimodal model + the image_generation
+ * tool, which drives gpt-image-2 under the hood. Reference images are passed as
+ * multimodal input. Uses the AI SDK (gateway provider reads AI_GATEWAY_API_KEY).
+ */
+async function editViaTool(opts: EditOptions, model: string): Promise<EditResult> {
+  process.env.AI_GATEWAY_API_KEY = opts.apiKey
+  const { generateText } = (await import('ai')) as any
+  const { openai } = (await import('@ai-sdk/openai')) as any
+
+  const content: any[] = [{ type: 'text', text: opts.prompt }]
+  for (const p of [opts.ref, ...(opts.extra ?? [])]) {
+    content.push({ type: 'image', image: await readFile(p) })
+  }
+  const size = opts.targetSize ? `${opts.targetSize[0]}x${opts.targetSize[1]}` : undefined
+
+  const result = await generateText({
+    model: DEFAULT_TOOL_LLM,
+    messages: [{ role: 'user', content }],
+    tools: { image_generation: openai.tools.imageGeneration({ quality: 'high', ...(size ? { size } : {}) }) },
+  })
+
+  let b64: string | undefined
+  for (const tr of result.staticToolResults ?? []) {
+    if (tr.toolName === 'image_generation') {
+      const out = tr.output
+      b64 = typeof out === 'string' ? out : out?.result
+    }
+  }
+  if (!b64) throw new Error('image2 edit (tool): no image returned from image_generation tool')
+  const bytes = await saveB64(b64, opts.out)
+  return { out: opts.out, bytes, model: `${model} (via ${DEFAULT_TOOL_LLM} + image_generation tool)`, mode: 'edit' }
 }
