@@ -2,6 +2,8 @@ import { Command } from 'commander'
 import { measure } from './commands/measure.js'
 import { screenshot } from './commands/screenshot.js'
 import { overlay } from './commands/overlay.js'
+import { configSet, configGet, configPath } from './commands/config.js'
+import { imagine } from './commands/imagine.js'
 
 const program = new Command()
 
@@ -104,5 +106,37 @@ Ghost image: Design elements appear in magenta, implementation in original color
 Where they align → clean. Where they diverge → visible magenta ghosting.
 AI agents can read ghost images to identify misaligned regions.
 `)
+
+const configCmd = program
+  .command('config')
+  .description('Manage design-ruler configuration (API keys for image2, etc.)')
+
+configCmd
+  .command('set <key> <value>')
+  .description('Set a config value. Supported key: ai-gateway-key')
+  .action(configSet)
+
+configCmd
+  .command('get <key>')
+  .description('Get a config value (key is masked). Supported key: ai-gateway-key')
+  .action(configGet)
+
+configCmd
+  .command('path')
+  .description('Print the absolute path of the config file')
+  .action(configPath)
+
+program
+  .command('imagine <prompt>')
+  .description('Generate an image via GPT Image 2 (image2). --ref switches to image-to-image edit mode.')
+  .option('--out <path>', 'Output PNG path (default: imagine-<timestamp>.png)')
+  .option('--quality <level>', 'low | medium | high (generate only)', 'medium')
+  .option('--size <WxH>', 'Canvas size, e.g. 1024x1536 (generate only)')
+  .option('--model <id>', 'Override default model')
+  .option('--ref <path>', 'Reference image → image-to-image edit mode')
+  .option('--extra <path...>', 'Extra reference images (edit mode, repeatable)')
+  .option('--target-size <WxH>', 'Output canvas for edit mode (contain + black background)')
+  .option('--key <vck_...>', 'Override API key (highest priority, not persisted)')
+  .action((prompt: string, opts: Record<string, any>) => imagine(prompt, opts))
 
 program.parse()
