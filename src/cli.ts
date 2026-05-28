@@ -7,6 +7,7 @@ import { imagine } from './commands/imagine.js'
 import { skillInstall, skillPath } from './commands/skill.js'
 import { crop } from './commands/crop.js'
 import { autocrop } from './commands/autocrop.js'
+import { icon } from './commands/icon.js'
 
 const program = new Command()
 
@@ -189,5 +190,15 @@ program
   .option('--white-threshold <n>', 'Foreground cutoff: pixels darker than this count as content', '240')
   .option('--min-size <px>', 'Drop boxes smaller than this on either axis', '20')
   .action((opts: Record<string, any>) => autocrop(opts))
+
+program
+  .command('icon <query>')
+  .description('Fetch a ready-made SVG icon from Iconify by semantic query (e.g. "search", "heart", "crown"). Prints SVG to stdout or --out. The agent recognizes the icon; the tool just fetches.')
+  .option('--set <prefix>', 'Restrict to one Iconify set / style (e.g. lucide, mdi, material-symbols)')
+  .option('--out <path>', 'Write SVG to file instead of stdout')
+  .option('--size <px>', 'SVG height attribute')
+  .option('--search', 'Do not fetch; print candidate icon names as JSON')
+  .option('--limit <n>', 'Max candidates when searching', '20')
+  .action((query: string, opts: Record<string, any>) => icon(query, opts))
 
 program.parse()
