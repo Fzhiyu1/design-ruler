@@ -6,6 +6,7 @@ import { configSet, configGet, configPath } from './commands/config.js'
 import { imagine } from './commands/imagine.js'
 import { skillInstall, skillPath } from './commands/skill.js'
 import { crop } from './commands/crop.js'
+import { autocrop } from './commands/autocrop.js'
 
 const program = new Command()
 
@@ -179,5 +180,14 @@ program
   .option('--out-dir <dir>', 'Output directory (default: .)')
   .option('--normalized', 'Treat box values as 0-1 fractions of width/height (recommended for agent-supplied boxes)')
   .action((opts: Record<string, any>) => crop(opts))
+
+program
+  .command('autocrop')
+  .description('Auto-detect asset boxes on a white-background grid sheet (projection profiles); writes boxes.json + a numbered _overview.png. Rename in boxes.json, then run `crop`.')
+  .requiredOption('--in <path>', 'Source sheet (white background, grid-aligned)')
+  .option('--out-dir <dir>', 'Output directory (default: .)')
+  .option('--white-threshold <n>', 'Foreground cutoff: pixels darker than this count as content', '240')
+  .option('--min-size <px>', 'Drop boxes smaller than this on either axis', '20')
+  .action((opts: Record<string, any>) => autocrop(opts))
 
 program.parse()
