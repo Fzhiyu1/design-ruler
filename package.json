@@ -38,6 +38,7 @@
     "ai": "^6.0.191",
     "commander": "^14.0.3",
     "sharp": "^0.34.5",
+    "ssim.js": "^3.5.0",
     "ws": "^8.20.0"
   },
   "devDependencies": {

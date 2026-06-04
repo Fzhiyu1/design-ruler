@@ -125,7 +125,7 @@ design-ruler overlay --design ./design.png --url "http://localhost:3000"
 
 | 设计稿 | 重影对比图 |
 |--------|-----------|
-| ![design](docs/design-example.png) | ![ghost](docs/ghost-example.png) |
+| ![design](assets/design-example.png) | ![ghost](assets/ghost-example.png) |
 
 重影效果会放大 1-2px 的偏移。AI agent 读取重影图就能直接定位哪些元素偏了、偏了多少。
 

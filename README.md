@@ -127,7 +127,7 @@ Design elements appear in **magenta**, implementation in original colors. Where 
 
 | Design | Ghost overlay |
 |--------|--------------|
-| ![design](docs/design-example.png) | ![ghost](docs/ghost-example.png) |
+| ![design](assets/design-example.png) | ![ghost](assets/ghost-example.png) |
 
 The ghost effect amplifies even 1-2px offsets. AI agents read ghost images to directly identify which elements are misaligned and by how much.
 

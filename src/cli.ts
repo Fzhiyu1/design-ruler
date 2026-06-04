@@ -8,6 +8,7 @@ import { skillInstall, skillPath } from './commands/skill.js'
 import { crop } from './commands/crop.js'
 import { autocrop } from './commands/autocrop.js'
 import { icon } from './commands/icon.js'
+import { score } from './commands/score.js'
 
 const program = new Command()
 
@@ -200,5 +201,31 @@ program
   .option('--search', 'Do not fetch; print candidate icon names as JSON')
   .option('--limit <n>', 'Max candidates when searching', '20')
   .action((query: string, opts: Record<string, any>) => icon(query, opts))
+
+const scoreCmd = program
+  .command('score')
+  .description('Compute SSIM distance between two same-source images (e.g. CI screenshot regression). distance = 1 - ssim, lower = closer. NOT a design-restoration fidelity metric — see help.')
+  .requiredOption('--a <path>', 'First image (resized to match --b)')
+  .requiredOption('--b <path>', 'Second image (size baseline)')
+  .option('--heatmap <path>', 'Also write a per-patch SSIM difference heatmap PNG (redder = larger structural difference)')
+  .option('--format <format>', 'Output format: json | table', 'json')
+  .action((opts: Record<string, any>) => score(opts))
+
+scoreCmd.addHelpText('after', `
+Output (JSON):
+  { "a": "imgA.png", "b": "imgB.png", "ssim": 0.96, "distance": 0.04, "status": "pass" }
+
+Thresholds: distance < 0.05 pass | 0.05-0.15 warning | >= 0.15 fail.
+
+Good for: regression-style comparison of two SAME-SOURCE images (e.g. CI screenshot
+diffing — "did the UI change unexpectedly?"). Both images should be the same content
+at the same scale.
+
+NOT a design-restoration fidelity metric. SSIM is blind to missing structure
+(deleting an entire nav bar barely moves the score) and oversensitive to global
+shift/scale (an 8px shift scores worse than a deleted module). For "does the render
+match the design", judge structure with a vision model and read exact positions/sizes
+with \`measure\` — do NOT use this score as a fitness / convergence signal.
+`)
 
 program.parse()
